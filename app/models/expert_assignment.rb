@@ -1,4 +1,4 @@
 class ExpertAssignment < ApplicationRecord
   belongs_to :conversation
-  belongs_to :expert, class_name: "User"
+  belongs_to :expert, class_name: "ExpertProfile"
 end

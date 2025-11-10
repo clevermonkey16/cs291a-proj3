@@ -8,7 +8,6 @@ class User < ApplicationRecord
   has_one :expert_profile, dependent: :destroy
   has_many :conversations, foreign_key: :initiator_id, class_name: "Conversation", dependent: :destroy
   has_many :messages, foreign_key: :sender_id, class_name: "Message", dependent: :destroy
-  has_many :expert_assignments, foreign_key: :expert_id, class_name: "ExpertAssignment", dependent: :destroy
 
   # Callbacks
   after_create :create_expert_profile
