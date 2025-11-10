@@ -61,11 +61,11 @@ class CookieConfigurationTest < ActionDispatch::IntegrationTest
     # Mock Rails.env to simulate development environment
     Rails.env.expects(:development?).returns(true)
     Rails.env.expects(:production?).returns(false)
-    
+
     # Test that the configuration logic returns :lax for development
     expected_same_site = Rails.env.development? ? :lax : :none
     assert_equal :lax, expected_same_site
-    
+
     # Test that secure is false for development
     expected_secure = Rails.env.production?
     assert_equal false, expected_secure
