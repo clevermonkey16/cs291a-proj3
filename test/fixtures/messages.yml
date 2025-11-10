@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  conversation: one
+  sender: one
+  content: MyText
+  is_read: false
+
+two:
+  conversation: two
+  sender: two
+  content: MyText
+  is_read: false
