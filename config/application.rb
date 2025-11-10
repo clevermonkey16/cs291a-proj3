@@ -30,3 +30,10 @@ module HelpDeskBackend
     config.api_only = true
   end
 end
+
+config.middleware.use ActionDispatch::Cookies
+config.middleware.use ActionDispatch::Session::ActiveRecordStore, {
+  expire_after: 24.hours,
+  same_site: Rails.env.development? ? :lax : :none,
+  secure: Rails.env.production?
+}
