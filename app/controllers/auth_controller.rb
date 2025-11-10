@@ -44,8 +44,19 @@ class AuthController < ApplicationController
   end
 
   def logout
-    # Destroy session
+    # Get the current session_id before resetting
+    old_session_id = session.id rescue nil
+
+    # Reset session - this clears data and creates a new session_id
     reset_session
+
+    # Delete the old session record from the database
+    if old_session_id
+      ActiveRecord::SessionStore::Session.find_by(session_id: old_session_id)&.destroy
+    end
+
+    # Access the session to ensure the new empty session is created and persisted
+    session.id
 
     render json: { message: "Logged out successfully" }, status: :ok
   end
