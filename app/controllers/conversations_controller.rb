@@ -2,34 +2,38 @@ class ConversationsController < ApplicationController
   include Authenticatable
 
   def index
-    # Get conversations where user is initiator or assigned expert
-    conversations = Conversation.where(
-      "initiator_id = ? OR assigned_expert_id = ?",
-      @current_user.id,
-      @current_user.id
-    )
-    
-    # If user is an expert, also include waiting conversations
-    if @current_user.expert_profile
-      waiting_conversations = Conversation.where(status: "waiting", assigned_expert_id: nil)
-      conversations = Conversation.where(
-        "id IN (?) OR id IN (?)",
-        conversations.select(:id),
-        waiting_conversations.select(:id)
-      )
+    # Check if user is acting as an expert (has assigned conversations)
+    # Since all users have expert profiles, we check if they have any assigned conversations
+    has_assigned_conversations = Conversation.where(assigned_expert_id: @current_user.id).exists?
+
+    if @current_user.expert_profile && has_assigned_conversations
+      # Experts can see: conversations they initiated, assigned to them, or waiting conversations
+      initiated = Conversation.where(initiator_id: @current_user.id)
+      assigned = Conversation.where(assigned_expert_id: @current_user.id)
+      waiting = Conversation.where(status: "waiting", assigned_expert_id: nil)
+
+      # Combine all three types
+      conversation_ids = initiated.pluck(:id) + assigned.pluck(:id) + waiting.pluck(:id)
+      conversations = Conversation.where(id: conversation_ids.uniq).order(updated_at: :desc)
+    else
+      # Non-experts can only see conversations they initiated
+      conversations = Conversation.where(initiator_id: @current_user.id).order(updated_at: :desc)
     end
-    
-    # Order by updated_at descending
-    conversations = conversations.order(updated_at: :desc)
 
     render json: conversations.map { |conv| conversation_response(conv) }, status: :ok
   end
 
   def show
     conversation = Conversation.find_by(id: params[:id])
-    
-    # Check if conversation exists and user has access
-    unless conversation && user_can_access_conversation?(conversation)
+
+    # Check if conversation exists
+    unless conversation
+      render json: { error: "Conversation not found" }, status: :not_found
+      return
+    end
+
+    # Check if user has access to the conversation
+    unless user_can_access_conversation?(conversation)
       render json: { error: "Conversation not found" }, status: :not_found
       return
     end
@@ -76,4 +80,3 @@ class ConversationsController < ApplicationController
                 .count
   end
 end
-

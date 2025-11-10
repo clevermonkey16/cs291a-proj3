@@ -1,17 +1,17 @@
 class AuthController < ApplicationController
   def register
     user = User.new(username: params[:username], password: params[:password])
-    
+
     if user.save
       # Update last_active_at
       user.update(last_active_at: Time.current)
-      
+
       # Set session
       session[:user_id] = user.id
-      
+
       # Generate JWT token
       token = JwtService.encode(user)
-      
+
       render json: {
         user: user_response(user),
         token: token
@@ -23,17 +23,17 @@ class AuthController < ApplicationController
 
   def login
     user = User.find_by(username: params[:username])
-    
+
     if user && user.authenticate(params[:password])
       # Update last_active_at
       user.update(last_active_at: Time.current)
-      
+
       # Set session
       session[:user_id] = user.id
-      
+
       # Generate JWT token
       token = JwtService.encode(user)
-      
+
       render json: {
         user: user_response(user),
         token: token
@@ -46,20 +46,20 @@ class AuthController < ApplicationController
   def logout
     # Destroy session
     reset_session
-    
+
     render json: { message: "Logged out successfully" }, status: :ok
   end
 
   def refresh
     user = current_user_from_session
-    
+
     if user
       # Update last_active_at
       user.update(last_active_at: Time.current)
-      
+
       # Generate new JWT token
       token = JwtService.encode(user)
-      
+
       render json: {
         user: user_response(user),
         token: token
@@ -71,7 +71,7 @@ class AuthController < ApplicationController
 
   def me
     user = current_user_from_session
-    
+
     if user
       render json: user_response(user), status: :ok
     else
@@ -95,4 +95,3 @@ class AuthController < ApplicationController
     }
   end
 end
-

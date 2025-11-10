@@ -18,13 +18,13 @@ Rails.application.routes.draw do
   # Conversations endpoints
   get "conversations", to: "conversations#index"
   post "conversations", to: "conversations#create"
-  
+
   # Messages endpoints (must come before conversations/:id to avoid route conflicts)
   get "conversations/:conversation_id/messages", to: "messages#index"
-  
+
   # Conversations endpoints (continued)
   get "conversations/:id", to: "conversations#show"
-  
+
   # Messages endpoints (continued)
   post "messages", to: "messages#create"
   put "messages/:id/read", to: "messages#mark_read"

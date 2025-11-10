@@ -14,12 +14,23 @@ class UpdatesController < ApplicationController
       return
     end
 
-    # Get conversations where user is initiator or assigned expert
-    conversations = Conversation.where(
-      "initiator_id = ? OR assigned_expert_id = ?",
-      @current_user.id,
-      @current_user.id
-    )
+    # Check if user is acting as an expert (has assigned conversations)
+    # Since all users have expert profiles, we check if they have any assigned conversations
+    has_assigned_conversations = Conversation.where(assigned_expert_id: @current_user.id).exists?
+
+    if @current_user.expert_profile && has_assigned_conversations
+      # Experts can see: conversations they initiated, assigned to them, or waiting conversations
+      initiated = Conversation.where(initiator_id: @current_user.id)
+      assigned = Conversation.where(assigned_expert_id: @current_user.id)
+      waiting = Conversation.where(status: "waiting", assigned_expert_id: nil)
+
+      # Combine all three types
+      conversation_ids = initiated.pluck(:id) + assigned.pluck(:id) + waiting.pluck(:id)
+      conversations = Conversation.where(id: conversation_ids.uniq)
+    else
+      # Non-experts can only see conversations they initiated
+      conversations = Conversation.where(initiator_id: @current_user.id)
+    end
 
     # Filter by since timestamp if provided
     if params[:since].present?
@@ -51,15 +62,32 @@ class UpdatesController < ApplicationController
       return
     end
 
-    # Get conversations where user is initiator or assigned expert
-    user_conversations = Conversation.where(
-      "initiator_id = ? OR assigned_expert_id = ?",
-      @current_user.id,
-      @current_user.id
-    )
+    # Check if user is acting as an expert (has assigned conversations)
+    # Since all users have expert profiles, we check if they have any assigned conversations
+    has_assigned_conversations = Conversation.where(assigned_expert_id: @current_user.id).exists?
 
-    # Get messages from those conversations
-    messages = Message.where(conversation_id: user_conversations.select(:id))
+    if @current_user.expert_profile && has_assigned_conversations
+      # Experts can see messages from: conversations they initiated, assigned to them, or waiting conversations
+      # Experts can view messages from waiting conversations even before claiming them
+      initiated = Conversation.where(initiator_id: @current_user.id)
+      assigned = Conversation.where(assigned_expert_id: @current_user.id)
+      waiting = Conversation.where(status: "waiting", assigned_expert_id: nil)
+
+      user_conversation_ids = (initiated.pluck(:id) + assigned.pluck(:id) + waiting.pluck(:id)).uniq
+    else
+      # Non-experts can only see messages from conversations they initiated
+      user_conversation_ids = Conversation.where(initiator_id: @current_user.id).pluck(:id)
+    end
+
+    # Return empty array if user has no accessible conversations
+    if user_conversation_ids.empty?
+      render json: [], status: :ok
+      return
+    end
+
+    # Get messages only from conversations the user has access to
+    # Use pluck to ensure we get the actual IDs, not a subquery that might have issues
+    messages = Message.where(conversation_id: user_conversation_ids)
 
     # Filter by since timestamp if provided
     if params[:since].present?
@@ -75,7 +103,24 @@ class UpdatesController < ApplicationController
     # Order by created_at ascending
     messages = messages.order(created_at: :asc)
 
-    render json: messages.map { |message| message_response(message) }, status: :ok
+    # Double-check: filter out any messages from conversations the user doesn't have access to
+    # This is an extra safety check in case of any edge cases
+    filtered_messages = messages.select do |message|
+      conversation = message.conversation
+      if @current_user.expert_profile && has_assigned_conversations
+        # Experts: initiator, assigned expert, or waiting conversations (can view before claiming)
+        conversation && (
+          conversation.initiator_id == @current_user.id ||
+          (conversation.assigned_expert_id.present? && conversation.assigned_expert_id == @current_user.id) ||
+          (conversation.status == "waiting" && conversation.assigned_expert_id.nil?)
+        )
+      else
+        # Non-experts: only initiator
+        conversation && conversation.initiator_id == @current_user.id
+      end
+    end
+
+    render json: filtered_messages.map { |message| message_response(message) }, status: :ok
   end
 
   def expert_queue_updates
@@ -100,7 +145,7 @@ class UpdatesController < ApplicationController
 
     # Get waiting conversations (status: waiting, no assigned expert)
     waiting_conversations = Conversation.where(status: "waiting", assigned_expert_id: nil)
-    
+
     # Get assigned conversations (where current expert is assigned)
     assigned_conversations = Conversation.where(assigned_expert_id: @current_user.id)
 
@@ -121,10 +166,10 @@ class UpdatesController < ApplicationController
     assigned_conversations = assigned_conversations.order(updated_at: :desc)
 
     # Response format: array with one object containing both arrays
-    render json: [{
+    render json: [ {
       waitingConversations: waiting_conversations.map { |conv| conversation_response(conv) },
       assignedConversations: assigned_conversations.map { |conv| conversation_response(conv) }
-    }], status: :ok
+    } ], status: :ok
   end
 
   private
@@ -175,4 +220,3 @@ class UpdatesController < ApplicationController
     end
   end
 end
-

@@ -38,19 +38,26 @@ module Authenticatable
 
   def user_can_access_conversation?(conversation)
     return false unless conversation
-    
+    return false unless @current_user
+
     # User is the initiator
-    return true if conversation.initiator_id == @current_user.id
-    
-    # User is the assigned expert
-    return true if conversation.assigned_expert_id == @current_user.id
-    
-    # User is an expert and conversation is in waiting queue
-    if @current_user.expert_profile && conversation.status == "waiting" && conversation.assigned_expert_id.nil?
+    if conversation.initiator_id.to_s == @current_user.id.to_s
       return true
     end
-    
+
+    # User is the assigned expert (only if assigned_expert_id is not nil)
+    if conversation.assigned_expert_id.present? &&
+       conversation.assigned_expert_id.to_s == @current_user.id.to_s
+      return true
+    end
+
+    # User can access waiting conversations (unclaimed)
+    # All users have expert profiles and can switch to expert mode
+    if conversation.status == "waiting" &&
+       conversation.assigned_expert_id.nil?
+      return true
+    end
+
     false
   end
 end
-

@@ -7,11 +7,11 @@ class ExpertController < ApplicationController
     # Get waiting conversations (status: waiting, no assigned expert)
     waiting_conversations = Conversation.where(status: "waiting", assigned_expert_id: nil)
                                        .order(created_at: :asc)
-    
+
     # Get assigned conversations (where current expert is assigned)
     assigned_conversations = Conversation.where(assigned_expert_id: @current_user.id)
                                         .order(updated_at: :desc)
-    
+
     render json: {
       waitingConversations: waiting_conversations.map { |conv| conversation_response(conv) },
       assignedConversations: assigned_conversations.map { |conv| conversation_response(conv) }
@@ -20,7 +20,7 @@ class ExpertController < ApplicationController
 
   def claim
     conversation = Conversation.find_by(id: params[:conversation_id])
-    
+
     # Check if conversation exists
     unless conversation
       render json: { error: "Conversation not found" }, status: :not_found
@@ -52,7 +52,7 @@ class ExpertController < ApplicationController
 
   def unclaim
     conversation = Conversation.find_by(id: params[:conversation_id])
-    
+
     # Check if conversation exists
     unless conversation
       render json: { error: "Conversation not found" }, status: :not_found
@@ -77,7 +77,7 @@ class ExpertController < ApplicationController
       expert: @current_user.expert_profile,
       status: "active"
     )
-    
+
     if expert_assignment
       expert_assignment.update(
         status: "resolved",
@@ -90,7 +90,7 @@ class ExpertController < ApplicationController
 
   def profile
     expert_profile = @current_user.expert_profile
-    
+
     render json: {
       id: expert_profile.id.to_s,
       userId: expert_profile.user_id.to_s,
@@ -103,7 +103,7 @@ class ExpertController < ApplicationController
 
   def update_profile
     expert_profile = @current_user.expert_profile
-    
+
     if expert_profile.update(
       bio: params[:bio],
       knowledge_base_links: params[:knowledgeBaseLinks] || []
@@ -123,11 +123,11 @@ class ExpertController < ApplicationController
 
   def assignments_history
     expert_profile = @current_user.expert_profile
-    
+
     # Get all expert assignments for this expert
     assignments = ExpertAssignment.where(expert: expert_profile)
                                   .order(assigned_at: :desc)
-    
+
     render json: assignments.map { |assignment| assignment_response(assignment) }, status: :ok
   end
 
@@ -174,4 +174,3 @@ class ExpertController < ApplicationController
     }
   end
 end
-

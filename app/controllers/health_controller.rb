@@ -6,4 +6,3 @@ class HealthController < ApplicationController
     }
   end
 end
-

@@ -1,0 +1,1 @@
+[{"severity":"convention","location":{"begin_pos":3160,"end_pos":3166},"message":"Layout/TrailingWhitespace: Trailing whitespace detected.","cop_name":"Layout/TrailingWhitespace","status":"uncorrected"}]
