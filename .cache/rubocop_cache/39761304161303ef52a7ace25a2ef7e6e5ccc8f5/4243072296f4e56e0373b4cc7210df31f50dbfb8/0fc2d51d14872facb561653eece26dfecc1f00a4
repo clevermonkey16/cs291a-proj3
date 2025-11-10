@@ -1,0 +1,1 @@
+[{"severity":"convention","location":{"begin_pos":1833,"end_pos":1834},"message":"Layout/TrailingEmptyLines: 1 trailing blank lines detected.","cop_name":"Layout/TrailingEmptyLines","status":"uncorrected"}]

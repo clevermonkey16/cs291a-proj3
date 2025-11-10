@@ -50,4 +50,3 @@ module HelpDeskBackend
     end
   end
 end
-
